@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"sync"
 	"time"
@@ -222,7 +223,7 @@ func HandleBalanceChangeOfTransactionBlock(tx models.SuiTransactionBlockResponse
 		}
 		walletAddress := addressOwner.AddressOwner
 		if walletAddress == configuration.Wallet.AddressId {
-			amount := float64(rawAmount) / float64(coinDecimals[coinType])
+			amount := float64(rawAmount) / float64(math.Pow10(coinDecimals[coinType]))
 			if err := SendNotification(walletAddress, amount, coinType, timestamp); err != nil {
 				fmt.Println("Error send notification", err)
 				return err

@@ -11,7 +11,8 @@ import (
 )
 
 func CreateTransactionsTable(DB *bun.DB, ctx context.Context) error {
-	_, err := DB.NewCreateTable().Model((*model.SuiTransaction)(nil)).
+	_, err := DB.NewCreateTable().
+		Model((*model.SuiTransaction)(nil)).
 		IfNotExists().
 		Exec(ctx)
 	if err != nil {
@@ -55,25 +56,58 @@ func InsertDB(wallet string, amount float64, rawAmount string, digest string, sy
 	return nil
 }
 
-// func GetTransactionBlockByHash(hash string, ctx context.Context) (*[]model.SuiTransaction, error) {
-// 	var transaction []model.SuiTransaction
-// 	err := db.DB.NewSelect().Model(&transaction).Where("transaction_hash = ?", hash).Scan(ctx)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return &transaction, nil
-// }
+func CalculaterReceivedAmount(coinType string, ctx context.Context) (float64, error) {
+	var totalAmount float64
+	err := db.DB.NewSelect().
+		ColumnExpr("SUM(amount)").
+		Model((*model.SuiTransaction)(nil)).
+		Where("token = ?", coinType).
+		Where("amount > 0").
+		Scan(ctx, &totalAmount)
+	if err != nil {
+		return 0, err
+	}
+	return totalAmount, nil
+}
+func CalculaterSentAmount(coinType string, ctx context.Context) (float64, error) {
+	var totalAmount float64
+	err := db.DB.NewSelect().
+		ColumnExpr("SUM(amount)").
+		Model((*model.SuiTransaction)(nil)).
+		Where("token = ?", coinType).
+		Where("amount < 0").
+		Scan(ctx, &totalAmount)
+	if err != nil {
+		return 0, err
+	}
+	return totalAmount, nil
+}
 
-// func GetbalanceChangeByHashAndWalletAndCoinType(hash string, wallet string, coinType string, ctx context.Context) (*model.SuiTransaction, error) {
-// 	var transaction model.SuiTransaction
-// 	err := db.DB.NewSelect().
-// 		Model(&transaction).
-// 		Where("transaction_hash = ?", hash).
-// 		Where("wallet_address = ?", wallet).
-// 		Where("token = ?", coinType).
-// 		Scan(ctx)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return &transaction, nil
-// }
+func DetailTransaction(hash string, offset int, limit int, ctx context.Context) (*[]model.SuiTransaction, error) {
+	var transaction []model.SuiTransaction
+	err := db.DB.NewSelect().
+		Model(&transaction).
+		Where("transaction_hash = ?", hash).
+		Offset(offset).
+		Limit(limit).
+		Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &transaction, nil
+}
+
+func GetTransactionInRange(fromDate time.Time, toDate time.Time, offset int, limit int, ctx context.Context) (*[]model.SuiTransaction, error) {
+	var transaction []model.SuiTransaction
+	err := db.DB.NewSelect().
+		Model(&transaction).
+		Where("created_at >= ?", fromDate).
+		Where("created_at <= ?", toDate).
+		Offset(offset).
+		Limit(limit).
+		Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &transaction, nil
+}
