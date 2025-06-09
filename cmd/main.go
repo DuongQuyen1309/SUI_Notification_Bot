@@ -20,5 +20,8 @@ func main() {
 	ctx := context.Background()
 	db.ConnectDB()
 	datastore.CreateTransactionsTable(db.DB, ctx)
-	service.SUITeleNoti(ctx)
+	err := service.SUITeleNoti(ctx)
+	if err != nil {
+		return
+	}
 }

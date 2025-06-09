@@ -1,0 +1,100 @@
+	latestCheckPointNumber, err := client.SuiGetLatestCheckpointSequenceNumber(ctx)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+
+    // kết thúc giải quyết quá khứ
+	//bắt dau giai quyet tuong lai
+	// msgCh := make(chan models.SuiEffects)
+	// client2 := sui.NewSuiWebsocketClient(constant.SuiMainnetEndpoint)
+	// req := models.SuiXSubscribeTransactionsRequest{
+	// 	TransactionFilter: models.TransactionFilter{
+	// 		"ToAddress": config.Wallet.AddressId,
+	// 	},
+	// }
+	// err = client2.SubscribeTransaction(ctx, req, msgCh)
+	// if err != nil {
+	// 	fmt.Println("Error SubscribeTransaction", err)
+	// 	return err
+	// }
+	// go func() {
+	// 	for {
+	// 		select {
+	// 		case msg := <-msgCh:
+	// 			transactionDigest := msg.TransactionDigest
+	// 			req := models.SuiGetTransactionBlockRequest{
+	// 				Digest: transactionDigest,
+	// 				Options: models.SuiTransactionBlockOptions{
+	// 					ShowInput:          true,
+	// 					ShowEffects:        true,
+	// 					ShowBalanceChanges: true,
+	// 				},
+	// 			}
+	// 			resp, err := client.SuiGetTransactionBlock(ctx, req)
+	// 			if err != nil {
+	// 				fmt.Println("Error GetTransactionBlock in realtime", err)
+	// 				return
+	// 			}
+	// 			err = HandleBalanceChangeOfTransactionBlock(resp, config, ctx)
+	// 			if err != nil {
+	// 				fmt.Println("Error GetBalanceChangeOfTransactionBlock in realtime", err)
+	// 				return
+	// 			}
+	// 		}
+	// 	}
+	// }()
+	//ket thuc giai quyet tuong lai
+	// newestcheckpoint := latestCheckPointNumber
+	// go func() {
+	// 	defer wg.Done()
+	// 	for {
+	// 		req := models.SuiGetCheckpointRequest{
+	// 			CheckpointID: strconv.Itoa(int(newestcheckpoint) + 1),
+	// 		}
+	// 		_, err := client.SuiGetCheckpoint(ctx, req)
+	// 		if err != nil {
+	// 			time.Sleep(10 * time.Second)
+	// 			continue
+	// 		}
+	// 		if err := HandleACheckpoint(strconv.Itoa(int(newestcheckpoint)), config, ctx, client); err != nil {
+	// 			fmt.Println("Error check point :", newestcheckpoint, err)
+	// 		}
+	// 		newestcheckpoint++
+	// 	}
+	// }()
+
+
+    func HandleACheckpoint(currentCheckpoint string, config *config.Config, ctx context.Context, client sui.ISuiAPI) error {
+	var currentCurson *string
+	for {
+		req := models.SuiXQueryTransactionBlocksRequest{
+			SuiTransactionBlockResponseQuery: models.SuiTransactionBlockResponseQuery{
+				TransactionFilter: models.TransactionFilter{
+					"Checkpoint": currentCheckpoint,
+				},
+				Options: models.SuiTransactionBlockOptions{
+					ShowInput:          true,
+					ShowEffects:        true,
+					ShowBalanceChanges: true,
+				},
+			},
+			Cursor:          currentCurson,
+			Limit:           5,
+			DescendingOrder: true,
+		}
+		resp, err := client.SuiXQueryTransactionBlocks(ctx, req)
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+		for _, tx := range resp.Data {
+			err := HandleBalanceChangeOfTransactionBlock(tx, config, ctx)
+			if err != nil {
+				return err
+			}
+		}
+		currentCurson = &resp.NextCursor
+	}
+}

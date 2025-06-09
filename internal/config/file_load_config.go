@@ -6,8 +6,9 @@ import (
 )
 
 type Token struct {
-	Symbol  string `json:"symbol"`
-	Address string `json:"address"`
+	Symbol   string `json:"symbol"`
+	Address  string `json:"address"`
+	Decimals int    `json:"decimals"`
 }
 type Config struct {
 	Wallet Wallet `json:"wallet"`
