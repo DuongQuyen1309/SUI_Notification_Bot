@@ -7,18 +7,17 @@ import (
 
 	"github.com/DuongQuyen1309/suibot/internal/db"
 	"github.com/DuongQuyen1309/suibot/internal/model"
-	"github.com/uptrace/bun"
 )
 
-func CreateTransactionsTable(DB *bun.DB, ctx context.Context) error {
-	_, err := DB.NewCreateTable().
+func CreateTransactionsTable(ctx context.Context) error {
+	_, err := db.DB.NewCreateTable().
 		Model((*model.SuiTransaction)(nil)).
 		IfNotExists().
 		Exec(ctx)
 	if err != nil {
 		return err
 	}
-	_, err = DB.NewCreateIndex().Model((*model.SuiTransaction)(nil)).
+	_, err = db.DB.NewCreateIndex().Model((*model.SuiTransaction)(nil)).
 		Index("idx_transaction_hash").
 		Column("transaction_hash").
 		IfNotExists().
@@ -28,7 +27,27 @@ func CreateTransactionsTable(DB *bun.DB, ctx context.Context) error {
 		return err
 	}
 
-	_, err = DB.NewCreateIndex().Model((*model.SuiTransaction)(nil)).
+	_, err = db.DB.NewCreateIndex().Model((*model.SuiTransaction)(nil)).
+		Index("idx_token_amount").
+		Column("token", "amount").
+		IfNotExists().
+		Exec(ctx)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	_, err = db.DB.NewCreateIndex().Model((*model.SuiTransaction)(nil)).
+		Index("idx_created").
+		Column("created_at").
+		IfNotExists().
+		Exec(ctx)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	_, err = db.DB.NewCreateIndex().Model((*model.SuiTransaction)(nil)).
 		Index("idx_transaction_hash_address_token").
 		Unique().
 		Column("transaction_hash", "wallet_address", "token").

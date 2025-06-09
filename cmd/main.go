@@ -21,7 +21,7 @@ func init() {
 func main() {
 	ctx := context.Background()
 	db.ConnectDB()
-	datastore.CreateTransactionsTable(db.DB, ctx)
+	datastore.CreateTransactionsTable(ctx)
 	// err := service.SUITeleNoti(ctx)
 	// if err != nil {
 	// 	return
