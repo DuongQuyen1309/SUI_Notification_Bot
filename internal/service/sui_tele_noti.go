@@ -154,11 +154,11 @@ func FilterTransactionSentInPast(ctx context.Context, client sui.ISuiAPI) error 
 func FilterInRealtime(client sui.ISuiAPI, ctx context.Context, newestCheckpoint int) error {
 	for {
 		req := models.SuiGetCheckpointRequest{
-			CheckpointID: strconv.Itoa(int(newestCheckpoint) + 1),
+			CheckpointID: strconv.Itoa(int(newestCheckpoint)),
 		}
 		_, err := client.SuiGetCheckpoint(ctx, req)
 		if err != nil {
-			time.Sleep(10 * time.Second)
+			time.Sleep(1 * time.Second)
 			continue
 		}
 		if err := HandleACheckpoint(strconv.Itoa(int(newestCheckpoint)), ctx, client); err != nil {
@@ -224,12 +224,20 @@ func HandleBalanceChangeOfTransactionBlock(tx models.SuiTransactionBlockResponse
 		walletAddress := addressOwner.AddressOwner
 		if walletAddress == configuration.Wallet.AddressId {
 			amount := float64(rawAmount) / float64(math.Pow10(coinDecimals[coinType]))
-			if err := SendNotification(walletAddress, amount, coinType, timestamp); err != nil {
-				fmt.Println("Error send notification", err)
-				return err
-			}
 			if err := datastore.InsertDB(walletAddress, amount, change.Amount, digest, coinType, timestamp, ctx); err != nil {
 				fmt.Println("Error insert db", err)
+				return err
+			}
+
+			isExist, err := datastore.CheckTransactionExist(digest, walletAddress, coinType, ctx)
+			if err != nil {
+				fmt.Println("Error checking transaction existence", err)
+			}
+			if isExist {
+				continue
+			}
+			if err := SendNotification(walletAddress, amount, coinType, timestamp); err != nil {
+				fmt.Println("Error send notification", err)
 				return err
 			}
 		}
